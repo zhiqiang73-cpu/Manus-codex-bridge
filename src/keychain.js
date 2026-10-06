@@ -15,7 +15,7 @@ import path from 'node:path';
  * 无任何第三方依赖，全部通过系统自带命令实现。
  */
 
-const SERVICE = 'chatgpt-plan-bridge';
+const SERVICE = 'manus-codex-bridge';
 const ACCOUNT = 'default';
 
 function tryExec(cmd, args, input) {

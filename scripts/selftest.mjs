@@ -19,7 +19,7 @@ async function check(name, fn) {
   }
 }
 
-console.log('chatgpt-plan-bridge self-test\n');
+console.log('manus-codex-bridge self-test\n');
 
 /* ---------- 错误映射 ---------- */
 console.log('error mapping');
@@ -30,7 +30,7 @@ await check('未连接 → 401 not_connected', () => {
   const d = errors.describeError({ code: 'not_connected', message: '尚未连接 ChatGPT' });
   assert.equal(d.httpStatus, 401);
   assert.equal(d.code, 'not_connected');
-  assert.ok(d.action.includes('cpb login'));
+  assert.ok(d.action.includes('mcb login'));
 });
 
 await check('套餐上限 → 429，且不把 200 透传给调用方', () => {
@@ -156,7 +156,7 @@ const { fileURLToPath } = await import('node:url');
 const path = await import('node:path');
 
 await check('MCP 握手、工具列表与工具调用', async () => {
-  const cli = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'cpb.js');
+  const cli = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'mcb.js');
   const child = spawn(process.execPath, [cli, 'mcp'], { stdio: ['pipe', 'pipe', 'pipe'] });
 
   const lines = [
@@ -186,7 +186,7 @@ await check('MCP 握手、工具列表与工具调用', async () => {
   const msgs = out.trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
   const byId = Object.fromEntries(msgs.map((m) => [m.id, m]));
 
-  assert.equal(byId[1].result.serverInfo.name, 'chatgpt-plan-bridge');
+  assert.equal(byId[1].result.serverInfo.name, 'manus-codex-bridge');
   assert.equal(byId[1].result.protocolVersion, '2024-11-05');
 
   const toolNames = byId[2].result.tools.map((t) => t.name);

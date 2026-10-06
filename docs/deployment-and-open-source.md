@@ -99,7 +99,7 @@ git clone <repo> && cd <repo> && node src/server.js
 ### 建议的仓库结构
 
 ```
-chatgpt-plan-bridge/                 # 或你想用的名字
+manus-codex-bridge/                 # 或你想用的名字
 ├── LICENSE                          # Apache-2.0（含专利授权，适合这类工具）
 ├── README.md                        # 是什么 / 为什么合规 / 怎么装 / 怎么用
 ├── SECURITY.md                      # 凭据如何存储、如何报告漏洞

@@ -129,7 +129,7 @@ function cmdLogout() {
 function cmdStatus() {
   const s = connectionSummary();
   const storage = storageInfo();
-  console.log('chatgpt-plan-bridge status\n');
+  console.log('manus-codex-bridge status\n');
   console.log(`  连接状态        : ${s.connected ? 'Connected' : 'Not connected'}`);
   if (s.connected) {
     console.log(`  账号            : ${s.email || '—'}`);
@@ -141,7 +141,7 @@ function cmdStatus() {
     console.log(`  保存时间        : ${s.savedAt || '—'}`);
   }
   console.log(`  凭据存储        : ${storage.label}${storage.secure ? '' : '  ⚠️ 非系统钥匙串，建议安装 libsecret 或使用 macOS/Windows'}`);
-  if (!s.connected) console.log('\n运行 `cpb login` 开始。');
+  if (!s.connected) console.log('\n运行 `mcb login` 开始。');
 }
 
 async function cmdModels() {
@@ -154,10 +154,10 @@ async function cmdModels() {
 async function cmdAsk(args) {
   const prompt = args._.slice(1).join(' ') || args.prompt;
   if (!prompt) {
-    console.error('用法：cpb ask "你的问题" [--model gpt-5.6-luna] [--instructions "..."]');
+    console.error('用法：mcb ask "你的问题" [--model gpt-5.6-luna] [--instructions "..."]');
     process.exit(1);
   }
-  let model = args.model || process.env.CPB_MODEL;
+  let model = args.model || process.env.MCB_MODEL;
   if (!model) {
     const { models } = await listModels();
     if (!models.length) throw new Error('账号没有可用模型');
@@ -179,8 +179,8 @@ async function cmdAsk(args) {
 
 async function cmdServe(args) {
   const { startHttpServer } = await import('../src/server.js');
-  const port = Number(args.port || process.env.CPB_PORT || 18888);
-  startHttpServer({ port, apiKey: args['api-key'] || process.env.CPB_API_KEY || null });
+  const port = Number(args.port || process.env.MCB_PORT || 18888);
+  startHttpServer({ port, apiKey: args['api-key'] || process.env.MCB_API_KEY || null });
 }
 
 async function cmdMcp() {
@@ -189,10 +189,10 @@ async function cmdMcp() {
 }
 
 function cmdHelp() {
-  console.log(`chatgpt-plan-bridge v${VERSION}
+  console.log(`manus-codex-bridge v${VERSION}
 用你自己的 ChatGPT Plus/Pro 套餐驱动本地工具，走 OpenAI 官方 OAuth 与 Responses API。
 
-用法：cpb <命令> [选项]
+用法：mcb <命令> [选项]
 
 命令：
   login              走官方 OAuth 授权（浏览器），把凭据存入系统钥匙串
@@ -209,9 +209,9 @@ function cmdHelp() {
   mcp                以 stdio 启动 MCP 服务，供 Manus / Claude Desktop / Cursor 调用
 
 环境变量：
-  CPB_PORT            serve 的默认端口
-  CPB_API_KEY         serve 的本地 API key
-  CPB_MODEL           ask 的默认模型
+  MCB_PORT            serve 的默认端口
+  MCB_API_KEY         serve 的本地 API key
+  MCB_MODEL           ask 的默认模型
 
 说明：
   本工具不使用 OpenAI API Key，也不会自动切换计费方式。

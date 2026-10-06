@@ -11,7 +11,7 @@ import { storageInfo } from './store.js';
  */
 
 const PROTOCOL_VERSION = '2024-11-05';
-const SERVER_INFO = { name: 'chatgpt-plan-bridge', version: '0.1.0' };
+const SERVER_INFO = { name: 'manus-codex-bridge', version: '0.1.0' };
 
 const TOOLS = [
   {
@@ -62,11 +62,11 @@ function textResult(text) {
 function requireConnection() {
   const summary = connectionSummary();
   if (!summary.connected) {
-    throw new Error('尚未连接 ChatGPT。请先在终端运行 `cpb login` 完成官方授权。');
+    throw new Error('尚未连接 ChatGPT。请先在终端运行 `mcb login` 完成官方授权。');
   }
   if (!summary.sharing) {
     throw new Error(
-      '已登录，但未授予 ChatGPT plan usage（缺少 chatgpt.tokens.use.direct）。请运行 `cpb login` 重新授权并勾选该权限。',
+      '已登录，但未授予 ChatGPT plan usage（缺少 chatgpt.tokens.use.direct）。请运行 `mcb login` 重新授权并勾选该权限。',
     );
   }
   return summary;

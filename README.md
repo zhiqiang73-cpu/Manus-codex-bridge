@@ -1,11 +1,15 @@
 # ChatGPT Plan Bridge
 
-> **Not affiliated with, endorsed by, or sponsored by OpenAI.** "ChatGPT" and "OpenAI" are trademarks of OpenAI. This is an independent open-source project.
+# Manus-codex-bridge
+
+> **An independent open-source project. Not affiliated with, endorsed by, or sponsored by Manus or OpenAI.**
+> "Manus" is a trademark of its respective owner. "ChatGPT", "Codex", and "OpenAI" are trademarks of OpenAI.
+> This is **not** a Manus product. Despite the name, it does **not** use the OpenAI Codex backend — it uses OpenAI's official OAuth and Responses API.
 
 Use the ChatGPT plan you already pay for — **Plus or Pro** — in your own local tools, through OpenAI's **official** sign-in and Responses API. No API key. No per-token billing.
 
 ```
-Your tool  →  cpb (local)  →  auth.openai.com (OAuth)  →  api.openai.com/v1/responses
+Your tool  →  mcb (local)  →  auth.openai.com (OAuth)  →  api.openai.com/v1/responses
                               └─ counts against your ChatGPT plan usage
 ```
 
@@ -13,9 +17,9 @@ Three ways to use it:
 
 | Surface | For |
 | --- | --- |
-| **MCP server** (`cpb mcp`) | Manus, Claude Desktop, Cursor, and other MCP clients |
-| **OpenAI-compatible HTTP** (`cpb serve`) | Any SDK or tool that accepts a custom `base_url` |
-| **CLI** (`cpb ask`) | Shell scripts and quick one-off prompts |
+| **MCP server** (`mcb mcp`) | Manus, Claude Desktop, Cursor, and other MCP clients |
+| **OpenAI-compatible HTTP** (`mcb serve`) | Any SDK or tool that accepts a custom `base_url` |
+| **CLI** (`mcb ask`) | Shell scripts and quick one-off prompts |
 
 ---
 
@@ -48,30 +52,30 @@ Most community bridges in this space put an OpenAI-compatible API in front of th
 ## Install
 
 ```bash
-git clone https://github.com/zhiqiang73-cpu/chatgpt-plan-bridge.git
-cd chatgpt-plan-bridge
-node bin/cpb.js login
+git clone https://github.com/zhiqiang73-cpu/Manus-codex-bridge.git
+cd manus-codex-bridge
+node bin/mcb.js login
 ```
 
 `login` opens your browser for the official OAuth flow and stores credentials in your OS keychain. Then:
 
 ```bash
-node bin/cpb.js status
-node bin/cpb.js models
-node bin/cpb.js ask "Explain what an idempotent HTTP method is" --model <id-from-models>
+node bin/mcb.js status
+node bin/mcb.js models
+node bin/mcb.js ask "Explain what an idempotent HTTP method is" --model <id-from-models>
 ```
 
-To get a global `cpb` command:
+To get a global `mcb` command:
 
 ```bash
-npm link          # or: ln -s "$PWD/bin/cpb.js" /usr/local/bin/cpb
+npm link          # or: ln -s "$PWD/bin/mcb.js" /usr/local/bin/mcb
 ```
 
 ---
 
 ## MCP setup
 
-`cpb mcp` speaks MCP over stdio, so any MCP client can launch it on demand — no daemon, no open port.
+`mcb mcp` speaks MCP over stdio, so any MCP client can launch it on demand — no daemon, no open port.
 
 **Tools exposed**
 
@@ -86,9 +90,9 @@ npm link          # or: ln -s "$PWD/bin/cpb.js" /usr/local/bin/cpb
 ```json
 {
   "mcpServers": {
-    "chatgpt-plan-bridge": {
+    "manus-codex-bridge": {
       "command": "node",
-      "args": ["/absolute/path/to/chatgpt-plan-bridge/bin/cpb.js", "mcp"]
+      "args": ["/absolute/path/to/manus-codex-bridge/bin/mcb.js", "mcp"]
     }
   }
 }
@@ -99,7 +103,7 @@ npm link          # or: ln -s "$PWD/bin/cpb.js" /usr/local/bin/cpb
 ## OpenAI-compatible HTTP
 
 ```bash
-cpb serve --port 18888 --api-key <your-local-key>
+mcb serve --port 18888 --api-key <your-local-key>
 ```
 
 | Endpoint | Notes |
@@ -129,9 +133,9 @@ Credentials are stored in the OS secret store, with an automatic and documented 
 | macOS | Keychain (`security`) |
 | Linux | Secret Service (`secret-tool`) |
 | Windows | DPAPI, current user (`powershell`) |
-| Fallback | Plain `0600` file at `~/.config/chatgpt-plan-bridge/credentials.json` |
+| Fallback | Plain `0600` file at `~/.config/manus-codex-bridge/credentials.json` |
 
-The fallback triggers only when the platform store is unavailable — for example a headless container without libsecret, or a restricted execution session. `cpb status` always reports which backend is actually in use, and a fallback emits a warning. **Credentials are never written to logs and never printed.**
+The fallback triggers only when the platform store is unavailable — for example a headless container without libsecret, or a restricted execution session. `mcb status` always reports which backend is actually in use, and a fallback emits a warning. **Credentials are never written to logs and never printed.**
 
 ---
 
@@ -205,7 +209,7 @@ This project surfaces these errors verbatim, with a link to <https://chatgpt.com
 
 - **Single account.** Multi-account / multi-workspace switching is not implemented yet.
 - **Text only.** Tools, images, and structured outputs are not passed through yet.
-- **No background service.** `serve` runs in the foreground; it does not register a LaunchAgent or systemd unit. MCP clients launch `cpb mcp` on demand instead.
+- **No background service.** `serve` runs in the foreground; it does not register a LaunchAgent or systemd unit. MCP clients launch `mcb mcp` on demand instead.
 - macOS is the primary test target.
 
 ---

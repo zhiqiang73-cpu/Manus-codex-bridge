@@ -1,12 +1,12 @@
 {
-  "name": "chatgpt-plan-bridge",
+  "name": "manus-codex-bridge",
   "version": "0.1.0",
   "description": "Use your ChatGPT Plus/Pro plan in your own local tools, through OpenAI's official sign-in and Responses API. No API key, no unofficial backend.",
   "type": "module",
   "license": "Apache-2.0",
   "bin": {
-    "cpb": "bin/cpb.js",
-    "chatgpt-plan-bridge": "bin/cpb.js"
+    "mcb": "bin/mcb.js",
+    "manus-codex-bridge": "bin/mcb.js"
   },
   "files": [
     "bin/",
@@ -21,10 +21,10 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node bin/cpb.js serve",
-    "login": "node bin/cpb.js login",
-    "status": "node bin/cpb.js status",
-    "models": "node bin/cpb.js models",
+    "start": "node bin/mcb.js serve",
+    "login": "node bin/mcb.js login",
+    "status": "node bin/mcb.js status",
+    "models": "node bin/mcb.js models",
     "test": "node scripts/selftest.mjs",
     "selftest": "node scripts/selftest.mjs",
     "test-models": "node scripts/test-models.mjs"
@@ -41,7 +41,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zhiqiang73-cpu/chatgpt-plan-bridge.git"
+    "url": "git+https://github.com/zhiqiang73-cpu/Manus-codex-bridge.git"
   },
   "dependencies": {},
   "os": [

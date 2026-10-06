@@ -72,12 +72,12 @@ const LOCAL_ERRORS = {
   not_connected: {
     http: 401,
     title: '尚未连接 ChatGPT',
-    action: '请先在终端运行 `cpb login` 完成官方授权。',
+    action: '请先在终端运行 `mcb login` 完成官方授权。',
   },
   no_plan_usage: {
     http: 403,
     title: '未授予 ChatGPT plan usage',
-    action: '已登录但缺少 chatgpt.tokens.use.direct。请运行 `cpb login` 重新授权并勾选该权限。',
+    action: '已登录但缺少 chatgpt.tokens.use.direct。请运行 `mcb login` 重新授权并勾选该权限。',
   },
 };
 

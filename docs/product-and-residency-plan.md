@@ -13,7 +13,7 @@
 ```
 ┌─ LaunchAgent（开机/登录自启，KeepAlive 崩溃自愈）─┐
 │                                                   │
-│  chatgpt-plan-bridge  ──┬─ MCP stdio 服务  ← Manus 随时调用
+│  manus-codex-bridge  ──┬─ MCP stdio 服务  ← Manus 随时调用
 │                         ├─ HTTP 端点 :18888 ← 其他工具/OpenAI SDK
 │                         └─ CLI: start/stop/status/login/logout
 │                                                   │

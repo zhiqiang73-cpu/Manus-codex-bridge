@@ -131,5 +131,5 @@ export function redact(value) {
 
 /** 供 CLI 显示的默认配置目录 */
 export function configDir() {
-  return path.join(os.homedir(), '.config', 'chatgpt-plan-bridge');
+  return path.join(os.homedir(), '.config', 'manus-codex-bridge');
 }

@@ -28,7 +28,7 @@ import {
 } from './openai-compat.js';
 
 const TEST_PROMPT = 'Reply with exactly: OFFICIAL_CHATGPT_PLAN_TEST_OK';
-const DEFAULT_PORT = Number(process.env.CPB_PORT || 18888);
+const DEFAULT_PORT = Number(process.env.MCB_PORT || 18888);
 
 /* ---------- 环境净化：明确不使用 API Key ---------- */
 const apiKeyWasPresent = Boolean(process.env.OPENAI_API_KEY);
@@ -117,7 +117,7 @@ function buildPocResult() {
 
   const result = {
     generated_at: new Date().toISOString(),
-    tool: 'chatgpt-plan-bridge',
+    tool: 'manus-codex-bridge',
 
     oauth_login: Boolean(summary.connected),
     oauth_flow: oauth?.mode || oauthEvidence?.flow_mode || null,
@@ -378,7 +378,7 @@ export function startHttpServer({ port = DEFAULT_PORT, host = '127.0.0.1', apiKe
   });
 
   server.listen(port, host, () => {
-    console.log(`chatgpt-plan-bridge listening on http://${host}:${port}/`);
+    console.log(`manus-codex-bridge listening on http://${host}:${port}/`);
     console.log(`  console    : http://${host}:${port}/`);
     console.log(`  OpenAI API : http://${host}:${port}/v1  (models, responses, chat/completions)`);
     console.log(`  redirect   : ${redirectUri}`);
@@ -392,7 +392,7 @@ export function startHttpServer({ port = DEFAULT_PORT, host = '127.0.0.1', apiKe
 const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isDirectRun) {
-  const server = startHttpServer({ port: DEFAULT_PORT, apiKey: process.env.CPB_API_KEY || null });
+  const server = startHttpServer({ port: DEFAULT_PORT, apiKey: process.env.MCB_API_KEY || null });
   for (const sig of ['SIGINT', 'SIGTERM']) {
     process.on(sig, () => {
       try {
