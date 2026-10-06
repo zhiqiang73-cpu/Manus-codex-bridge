@@ -203,6 +203,41 @@ This project surfaces these errors verbatim, with a link to <https://chatgpt.com
 
 ---
 
+## Mobile and tablets
+
+OpenAI's flow has one hard constraint: the callback must be an **HTTP loopback address on `127.0.0.1`** — `localhost` is not accepted, and only the port may vary. Custom URL schemes (`myapp://`) are not accepted either. That shapes what is possible on mobile.
+
+| Platform | How | Status |
+| --- | --- | --- |
+| **Android** | [Termux](https://termux.dev) → `pkg install nodejs` → clone → `node bin/mcb.js login` | Works today, no code changes needed |
+| **iPad / iPhone** | Run the bridge on a Mac/PC, use it from the tablet over your LAN | Works today (see below) |
+| **iPad / iPhone** | Native Swift app (`NWListener` loopback + Keychain) | Not built — a separate app project |
+| **iPad / iPhone** | [iSH](https://ish.app) (Alpine emulation) + Node | Experimental — slow, port binding unreliable |
+
+**Why there is no "just install it" iOS app yet:** Node.js does not run on iOS/iPadOS, and the loopback-only callback rule rules out the usual mobile OAuth pattern. A native app is feasible — an iOS app can serve `127.0.0.1` while the system browser is in the foreground, which is the standard RFC 8252 loopback pattern — but that is a separate Swift project, not a port of this one.
+
+### Using it from a phone or tablet
+
+Run the bridge on a computer and reach it from the tablet over your local network:
+
+```bash
+mcb serve --host 0.0.0.0 --api-key <random-string>
+```
+
+- `--host 0.0.0.0` binds all interfaces. **An API key is mandatory** — the command refuses to start without one.
+- The console is mobile-responsive, so `http://<computer-ip>:18888/` works in a phone browser.
+- Point a mobile OpenAI client at `http://<computer-ip>:18888/v1` with the same key.
+
+**Sign-in still happens on the computer.** The OAuth callback must land on the bridge machine's `127.0.0.1`, so the login cannot be completed from the phone. Sign in on the computer first, then use it from the tablet.
+
+> Only do this on a network you trust. Anyone on the same Wi-Fi can reach the port; the API key is what stops them from spending your plan.
+
+### Manus on mobile
+
+The MCP surface needs a local process, so a mobile Manus client cannot launch `mcb mcp`. Use the HTTP surface from mobile instead.
+
+---
+
 ## Limitations
 
 - **Single account.** Multi-account / multi-workspace switching is not implemented yet.

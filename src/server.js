@@ -1,4 +1,5 @@
 import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderPage } from './page.js';
@@ -175,11 +176,18 @@ function buildPocResult() {
 
 /* ---------- 路由 ---------- */
 
-export function startHttpServer({ port = DEFAULT_PORT, host = '127.0.0.1', apiKey = null } = {}) {
-  const redirectUri = `http://${host}:${port}/auth/callback`;
+export function startHttpServer({
+  port = DEFAULT_PORT,
+  host = '127.0.0.1',
+  apiKey = null,
+  callbackHost = '127.0.0.1',
+} = {}) {
+  // 官方要求回调必须是 127.0.0.1 回环地址，与监听地址无关。
+  // 即使绑到 0.0.0.0 供局域网使用，回调仍固定为 127.0.0.1。
+  const redirectUri = `http://${callbackHost}:${port}/auth/callback`;
 
   const server = http.createServer(async (req, res) => {
-    const url = new URL(req.url, `http://${host}:${port}`);
+    const url = new URL(req.url, `http://${req.headers.host || `${callbackHost}:${port}`}`);
     const route = url.pathname.replace(/\/+$/, '') || '/';
 
     try {
@@ -378,12 +386,26 @@ export function startHttpServer({ port = DEFAULT_PORT, host = '127.0.0.1', apiKe
   });
 
   server.listen(port, host, () => {
-    console.log(`manus-codex-bridge listening on http://${host}:${port}/`);
-    console.log(`  console    : http://${host}:${port}/`);
-    console.log(`  OpenAI API : http://${host}:${port}/v1  (models, responses, chat/completions)`);
+    const loopbackOnly = host === '127.0.0.1' || host === '::1';
+    console.log(`manus-codex-bridge listening on ${host}:${port}`);
+    console.log(`  console    : http://127.0.0.1:${port}/`);
+    console.log(`  OpenAI API : http://127.0.0.1:${port}/v1  (models, responses, chat/completions)`);
     console.log(`  redirect   : ${redirectUri}`);
     console.log(`  storage    : ${storageInfo().label}`);
     console.log(`  local key  : ${apiKey ? 'required' : 'not required'}`);
+    if (!loopbackOnly) {
+      console.log('  reachable from this network:');
+      for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
+        for (const a of addrs || []) {
+          if (a.family === 'IPv4' && !a.internal) {
+            console.log(`    http://${a.address}:${port}/   (${name})`);
+          }
+        }
+      }
+      console.log('  ⚠️  Bound beyond loopback — any device on this network can reach it.');
+      console.log('      /v1/* requires the local API key. Sign-in still happens on THIS machine,');
+      console.log(`      because the OAuth callback must be ${redirectUri}.`);
+    }
   });
 
   return server;

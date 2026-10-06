@@ -33,6 +33,15 @@ function parseArgs(argv) {
 }
 
 function openBrowser(url) {
+  // Termux（Android）优先：xdg-open 在 Termux 里通常不可用
+  if (process.env.TERMUX_VERSION || String(process.env.PREFIX || '').includes('com.termux')) {
+    try {
+      spawn('termux-open-url', [url], { stdio: 'ignore', detached: true }).unref();
+      return true;
+    } catch {
+      /* 落到通用分支 */
+    }
+  }
   const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';
   const cmdArgs = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
   try {
@@ -180,7 +189,18 @@ async function cmdAsk(args) {
 async function cmdServe(args) {
   const { startHttpServer } = await import('../src/server.js');
   const port = Number(args.port || process.env.MCB_PORT || 18888);
-  startHttpServer({ port, apiKey: args['api-key'] || process.env.MCB_API_KEY || null });
+  const host = String(args.host || process.env.MCB_HOST || '127.0.0.1');
+  const apiKey = args['api-key'] || process.env.MCB_API_KEY || null;
+  const loopback = host === '127.0.0.1' || host === '::1';
+
+  if (!loopback && !apiKey) {
+    console.error('拒绝启动：绑定到非回环地址时必须提供 --api-key。');
+    console.error('  否则同一网络上的任何设备都能消耗你的 ChatGPT 套餐额度。');
+    console.error('  示例：mcb serve --host 0.0.0.0 --api-key <随机字符串>');
+    process.exit(1);
+  }
+
+  startHttpServer({ port, host, apiKey });
 }
 
 async function cmdMcp() {
@@ -205,12 +225,16 @@ function cmdHelp() {
                        --verbose           额外打印用量
   serve              启动本地 HTTP 服务（控制台 + OpenAI 兼容端点）
                        --port <n>          端口，默认 18888
+                       --host <addr>       监听地址，默认 127.0.0.1
+                                           绑 0.0.0.0 可让手机/iPad 经局域网访问，
+                                           此时必须提供 --api-key
                        --api-key <k>       为 /v1/* 启用本地 API key 校验
   mcp                以 stdio 启动 MCP 服务，供 Manus / Claude Desktop / Cursor 调用
 
 环境变量：
   MCB_PORT            serve 的默认端口
   MCB_API_KEY         serve 的本地 API key
+  MCB_HOST            serve 的默认监听地址
   MCB_MODEL           ask 的默认模型
 
 说明：
