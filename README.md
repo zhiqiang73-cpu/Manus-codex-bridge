@@ -1,5 +1,3 @@
-# ChatGPT Plan Bridge
-
 # Manus-codex-bridge
 
 > **An independent open-source project. Not affiliated with, endorsed by, or sponsored by Manus or OpenAI.**
