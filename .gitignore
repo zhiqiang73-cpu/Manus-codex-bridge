@@ -1,0 +1,4 @@
+# 凭据与运行产物：绝不提交
+state/
+logs/
+node_modules/

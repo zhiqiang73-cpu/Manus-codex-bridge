@@ -1,0 +1,13 @@
+{
+  "name": "poc-official-chatgpt-plan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "最小化 PoC：验证官方 Sign in with ChatGPT（ChatGPT plan usage）→ api.openai.com/v1/models → api.openai.com/v1/responses 这条链路是否真实可用",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js"
+  }
+}
