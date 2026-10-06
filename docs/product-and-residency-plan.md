@@ -169,3 +169,46 @@ Manus 侧「随时可用」靠的是 **MCP 连接器**（本地 stdio），这�
 - 实测：`gpt-5.6-luna` 可用；`gpt-5.6-sol` / `gpt-5.6-terra` / `gpt-6-astra` 返回 `subscription_sharing_usage_limit_exceeded`
 - **去 [ChatGPT Settings → Usage](https://chatgpt.com/settings/usage) 看 App limits 和重置时间** —— 官方说「重新登录或反复重试都不会恢复额度」，不要靠猜
 - 如果那里有「allow apps to use credits」开关，打开它并把该应用上限设为 100%，才可能在套餐额度用尽后继续用
+- 如果那里有「allow apps to use credits」开关，打开它并把该应用上限设为 100%，才可能在套餐额度用尽后继续用
+
+---
+
+## 八、常驻化的好处与坏处
+
+### 先拆概念：「常驻」其实是两件不同的事
+
+| | A. MCP stdio 连接器 | B. HTTP 常驻服务（LaunchAgent） |
+| --- | --- | --- |
+| 谁拉起进程 | **客户端按需拉起**（Manus 需要时才起，用完退出） | 系统开机/登录时拉起，一直活着 |
+| 需要常驻吗 | **不需要** | 需要 |
+| 开端口吗 | 不开（走 stdin/stdout） | 开（如 `127.0.0.1:18787`） |
+| 谁在用 | Manus / Claude Desktop / Cursor | 任意 OpenAI SDK、脚本、其他工具 |
+
+**实测事实**：现有 `codex-flex-bridge` 连接器是 `[mcp/stdio]`，即 **Manus 每次自己拉起**；那个 LaunchAgent 其实从未真正装上（`launchctl` 里查不到）。
+
+> **结论：你在 Manus 里想要的「随时可用」，stdio 连接器已经给了，不需要常驻。**
+
+### 常驻（B）的好处
+
+1. **其他工具零启动成本** —— Cursor、LangChain、任意 OpenAI SDK 改一个 `base_url` 就能用，不用先手动起服务。这是常驻**唯一不可替代**的收益。
+2. **令牌可后台刷新** —— access token 有效期实测 3600 秒；常驻进程能在过期前主动刷新，避免任务跑到一半失败。
+3. **单点复用** —— 一处凭据、一处用量记录、一处错误映射，不会出现多个进程各刷各的 token。
+
+### 常驻（B）的坏处
+
+1. **多开一个本地端口 = 新的攻击面** —— `127.0.0.1:<port>` 上任何本机进程都能访问。若 HTTP 端点不做鉴权，任何本机程序（包括随手 `npm install` 进来的包）都能消耗你的 ChatGPT 额度。**这是最实在的代价。**
+2. **凭据长期驻留** —— refresh token 常年在磁盘与内存里，机器一旦被入侵，暴露窗口从「几分钟」变成「永久」。
+3. **额度会被静默吃掉** —— 常驻意味着随时可被调用。你刚撞到过 `subscription_sharing_usage_limit_exceeded`，若某工具在后台反复调用，你不会立刻察觉。
+4. **调试与版本管理变麻烦** —— 后台进程不可见；安装副本（`~/Library/Application Support/…`）会和源码树分叉。旧 bridge 的 `install.sh` 自拷贝缺陷就是这个坑。
+5. **平台适配有真实门槛** —— LaunchAgent 需要真实用户会话才能 `bootstrap`（你之前就没成功过）；systemd / 任务计划程序各有各的坑。
+6. **「随时关闭」反而更难保证** —— 后台服务容易被遗忘，必须额外提供 `status` / `stop` 并给出明确提示。
+
+### 建议的分级方案
+
+| 级别 | 做法 | 常驻 | 端口 | 风险 |
+| --- | --- | --- | --- | --- |
+| **L0（推荐先做）** | 只做 MCP stdio 连接器 | ❌ | ❌ | 最低 |
+| **L1（按需）** | HTTP 端点由 CLI `start` 拉起、`stop` 关闭 | 仅在使用时 | 仅在使用时 | 低 |
+| **L2（谨慎）** | 开机自启常驻 | ✅ | ✅ | 需配套加固 |
+
+**若要做 L2，必须同时满足**：HTTP 端加本地 API key 鉴权 + 只绑 `127.0.0.1` + 关闭 CORS + 提供用量提示 + 提供 `status`/`stop`。

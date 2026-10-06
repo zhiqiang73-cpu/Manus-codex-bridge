@@ -1,15 +1,17 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as keychain from './keychain.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..');
 export const STATE_DIR = path.join(ROOT, 'state');
 export const LOGS_DIR = path.join(ROOT, 'logs');
 
+/** 非敏感状态放项目目录；凭据一律进系统钥匙串 */
 const HOST_FILE = path.join(STATE_DIR, 'chatgpt-host.json');
-const CRED_FILE = path.join(STATE_DIR, 'credentials.json');
 
 function ensureDirs() {
   for (const dir of [STATE_DIR, LOGS_DIR]) {
@@ -54,26 +56,59 @@ export function getHostId() {
 }
 
 export function loadCredentials() {
-  return readJson(CRED_FILE);
+  const raw = keychain.getSecret();
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.access_token) return parsed;
+    } catch {
+      /* 落回迁移路径 */
+    }
+  }
+
+  // 迁移：早期版本把凭据明文放在 state/credentials.json
+  const legacy = readJson(path.join(STATE_DIR, 'credentials.json'));
+  if (legacy?.access_token) {
+    const res = keychain.setSecret(JSON.stringify(legacy));
+    // 只有真正写进系统钥匙串后才删除明文文件。
+    // 若回退到文件后端或写入失败，保留原文件——绝不因为迁移而丢凭据。
+    if (res.ok && res.backend !== 'file-fallback') {
+      try {
+        fs.rmSync(path.join(STATE_DIR, 'credentials.json'), { force: true });
+      } catch {
+        /* 删不掉也无妨 */
+      }
+    }
+    return legacy;
+  }
+
+  return null;
 }
 
-/** 凭据文件 0600；绝不写入 logs/，绝不打印 */
 export function saveCredentials(record) {
-  writeJson(CRED_FILE, record, 0o600);
+  const res = keychain.setSecret(JSON.stringify(record));
+  if (!res.ok) {
+    throw new Error('无法保存凭据：系统钥匙串与文件回退均写入失败');
+  }
+  if (res.fellBackFrom) {
+    process.emitWarning(
+      `系统钥匙串（${res.fellBackFrom}）不可用（${res.error || '未知原因'}），凭据已回退保存到 ${keychain.describe().filePath}（权限 0600）。`,
+    );
+  }
   return record;
 }
 
 export function clearCredentials() {
-  try {
-    fs.rmSync(CRED_FILE, { force: true });
-  } catch {
-    /* 忽略 */
-  }
+  keychain.deleteSecret();
 }
 
 export function hasSharingScope(creds) {
   const scopes = Array.isArray(creds?.scopes) ? creds.scopes : [];
   return scopes.includes('chatgpt.tokens.use.direct');
+}
+
+export function storageInfo() {
+  return keychain.describe();
 }
 
 export function writeLog(name, value) {
@@ -92,4 +127,9 @@ export function redact(value) {
     if (key in clone) clone[key] = '<hidden>';
   }
   return clone;
+}
+
+/** 供 CLI 显示的默认配置目录 */
+export function configDir() {
+  return path.join(os.homedir(), '.config', 'chatgpt-plan-bridge');
 }

@@ -5,9 +5,17 @@
 Use the ChatGPT plan you already pay for — **Plus or Pro** — in your own local tools, through OpenAI's **official** sign-in and Responses API. No API key. No per-token billing.
 
 ```
-Your tool  →  this bridge (local)  →  auth.openai.com (OAuth)  →  api.openai.com/v1/responses
-                                     └─ counts against your ChatGPT plan usage
+Your tool  →  cpb (local)  →  auth.openai.com (OAuth)  →  api.openai.com/v1/responses
+                              └─ counts against your ChatGPT plan usage
 ```
+
+Three ways to use it:
+
+| Surface | For |
+| --- | --- |
+| **MCP server** (`cpb mcp`) | Manus, Claude Desktop, Cursor, and other MCP clients |
+| **OpenAI-compatible HTTP** (`cpb serve`) | Any SDK or tool that accepts a custom `base_url` |
+| **CLI** (`cpb ask`) | Shell scripts and quick one-off prompts |
 
 ---
 
@@ -24,63 +32,116 @@ Most community bridges in this space put an OpenAI-compatible API in front of th
 | Auth | Official OAuth 2.0 + PKCE, dynamic client registration | Reads a Codex CLI credential file |
 | Inference | `POST https://api.openai.com/v1/responses` | `chatgpt.com/backend-api/codex/*` |
 | Model list | `GET https://api.openai.com/v1/models` | Bundled / cached catalog |
+| Credentials | OS keychain, with a documented fallback | Plain file |
 | Billing | ChatGPT plan usage, granted by the user | ChatGPT plan usage, implicitly |
-
----
-
-## Status
-
-Working prototype. The full chain has been verified end to end against a real Plus account:
-
-- OAuth dynamic registration → issued client ID
-- ID token verified (signature, issuer, audience, expiry)
-- `GET /v1/models` → account-specific catalog
-- `POST /v1/responses` → streamed completion
-
-See [RESULT.md](RESULT.md) for the raw evidence, including the two non-obvious gotchas found during testing.
-
-**Not yet production-ready.** See [Limitations](#limitations).
 
 ---
 
 ## Requirements
 
-- **Node.js 18+** — nothing else. There are **zero runtime dependencies**; no `npm install` needed.
+- **Node.js 18+** — nothing else. **Zero runtime dependencies**; no `npm install` needed.
 - A **ChatGPT Plus or Pro** account.
 - macOS, Linux, or Windows.
 
 ---
 
-## Quick start
+## Install
 
 ```bash
-git clone <this-repo>
-cd <this-repo>
-node src/server.js
+git clone https://github.com/zhiqiang73-cpu/chatgpt-plan-bridge.git
+cd chatgpt-plan-bridge
+node bin/cpb.js login
 ```
 
-Open <http://127.0.0.1:18888/> and:
-
-1. **Sign in with ChatGPT** — completes OAuth in your browser
-2. Approve the **ChatGPT plan usage** permission (without it you get no access token)
-3. **Refresh Models** — the dropdown is populated from what the server actually returns
-4. Pick a model → **Test Inference**
-
-### Command line
+`login` opens your browser for the official OAuth flow and stores credentials in your OS keychain. Then:
 
 ```bash
-node scripts/test-models.mjs "your prompt"   # test every model the account exposes
+node bin/cpb.js status
+node bin/cpb.js models
+node bin/cpb.js ask "Explain what an idempotent HTTP method is" --model <id-from-models>
 ```
 
-### Files produced
+To get a global `cpb` command:
+
+```bash
+npm link          # or: ln -s "$PWD/bin/cpb.js" /usr/local/bin/cpb
+```
+
+---
+
+## MCP setup
+
+`cpb mcp` speaks MCP over stdio, so any MCP client can launch it on demand — no daemon, no open port.
+
+**Tools exposed**
+
+| Tool | Purpose |
+| --- | --- |
+| `chatgpt_status` | Connection state, whether plan usage was granted, storage backend |
+| `chatgpt_models` | Live model list for the signed-in account |
+| `chatgpt_ask` | Run one prompt against a chosen model |
+
+**Example client config**
+
+```json
+{
+  "mcpServers": {
+    "chatgpt-plan-bridge": {
+      "command": "node",
+      "args": ["/absolute/path/to/chatgpt-plan-bridge/bin/cpb.js", "mcp"]
+    }
+  }
+}
+```
+
+---
+
+## OpenAI-compatible HTTP
+
+```bash
+cpb serve --port 18888 --api-key <your-local-key>
+```
+
+| Endpoint | Notes |
+| --- | --- |
+| `GET /v1/models` | Live catalog |
+| `POST /v1/responses` | Responses API shape; supports `stream: true` |
+| `POST /v1/chat/completions` | Chat Completions shape; supports `stream: true` |
+| `GET /` | Local console — sign in, browse models, test inference, view evidence |
+
+Point any OpenAI client at it:
+
+```bash
+export OPENAI_BASE_URL=http://127.0.0.1:18888/v1
+export OPENAI_API_KEY=<your-local-key>
+```
+
+> **Always set `--api-key`.** The server binds to `127.0.0.1`, but any local process can reach a loopback port. Without a key, any program on your machine — including a stray dependency — could spend your ChatGPT plan.
+
+---
+
+## Credential storage
+
+Credentials are stored in the OS secret store, with an automatic and documented fallback:
+
+| Platform | Backend |
+| --- | --- |
+| macOS | Keychain (`security`) |
+| Linux | Secret Service (`secret-tool`) |
+| Windows | DPAPI, current user (`powershell`) |
+| Fallback | Plain `0600` file at `~/.config/chatgpt-plan-bridge/credentials.json` |
+
+The fallback triggers only when the platform store is unavailable — for example a headless container without libsecret, or a restricted execution session. `cpb status` always reports which backend is actually in use, and a fallback emits a warning. **Credentials are never written to logs and never printed.**
+
+---
+
+## What gets stored and logged
 
 | Path | Contents |
 | --- | --- |
-| `logs/models.json` | The real model catalog returned by the server |
-| `logs/poc-result.json` | Step-by-step result and evidence |
-| `logs/oauth-result.json` | Auth outcome and ID token verification |
-| `logs/outbound.json` | Every outbound request (method, origin+path, status) |
-| `state/credentials.json` | Credentials, mode `0600` — never committed, never logged |
+| OS keychain | `access_token`, `refresh_token`, `id_token` |
+| `state/chatgpt-host.json` | This installation's host ID — not sensitive |
+| `logs/*.json` | Model catalog, results, outbound request summary — **no tokens** |
 
 ---
 
@@ -110,13 +171,11 @@ The callback returns the code **and the issued `client_id`**. Exchange the code 
 ## Two gotchas worth knowing
 
 1. **The streaming response has no `content-type` header.** `POST /v1/responses` returns 200 with `content-type: null` and only `transfer-encoding: chunked`. Any client that gates on `text/event-stream` will misreport a working request as a failure. Decide from the HTTP status plus the parsed events.
-2. **Failures can arrive after the stream opens.** A plan-usage error comes back as `response.failed` inside an HTTP **200** stream. Only `response.completed` means success.
+2. **Failures can arrive after the stream opens.** A plan-usage error comes back as `response.failed` inside an HTTP **200** stream. Only `response.completed` means success. This bridge maps such failures to a proper status code (e.g. `429`) for callers rather than passing the misleading 200 through.
 
 ---
 
 ## Compliance and scope
-
-This project is built to stay inside what OpenAI actually permits:
 
 | Use | Allowed? |
 | --- | --- |
@@ -127,30 +186,27 @@ This project is built to stay inside what OpenAI actually permits:
 
 This project is an **independent implementation written from OpenAI's public documentation**. It does not include or derive from the DevKit source.
 
-If you intend to build a paid or remotely hosted product, contact OpenAI first. Do not use this project to resell access.
-
 ---
 
 ## Usage limits
 
-Plan usage is a shared allowance, not an unlimited pool. A few things that surprise people:
+Plan usage is a shared allowance, not an unlimited pool:
 
 - You can set a **per-app weekly limit** in ChatGPT → **Settings → Usage**. That limit is a **cap, not a separate pool** — the app can hit its cap while your plan still has usage left.
-- `subscription_sharing_usage_limit_exceeded` can mean *either* an app-level cap *or* an overall plan limit. You cannot tell which from the code alone, and you cannot infer a reset time from it. Point users at <https://chatgpt.com/settings/usage>.
+- `subscription_sharing_usage_limit_exceeded` can mean *either* an app-level cap *or* an overall plan limit. You cannot tell which from the code alone, and you cannot infer a reset time from it.
 - Signing in again or retrying does **not** restore usage.
 - After included usage runs out, apps can use credits only if the user has opted in **and** the app's limit is set to 100%.
 
-This project surfaces these errors verbatim rather than guessing.
+This project surfaces these errors verbatim, with a link to <https://chatgpt.com/settings/usage>, rather than guessing.
 
 ---
 
 ## Limitations
 
-- Credentials are stored in a plain `0600` file. **OS keychain storage is not implemented yet** — this must be done before distributing the tool to others. See [SECURITY.md](SECURITY.md).
-- Single account profile. Multi-account / multi-workspace switching is not implemented.
-- The structured error table from OpenAI's docs is only partially mapped.
-- No MCP server or OpenAI-compatible HTTP surface yet — currently a local console plus a test script.
-- macOS has been the primary test target.
+- **Single account.** Multi-account / multi-workspace switching is not implemented yet.
+- **Text only.** Tools, images, and structured outputs are not passed through yet.
+- **No background service.** `serve` runs in the foreground; it does not register a LaunchAgent or systemd unit. MCP clients launch `cpb mcp` on demand instead.
+- macOS is the primary test target.
 
 ---
 

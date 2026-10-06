@@ -322,7 +322,18 @@ export async function refreshAccessToken() {
 /** 取一个可用的 access token（不打印、不外泄） */
 export async function getAccessToken() {
   const creds = loadCredentials();
-  if (!creds?.access_token) throw new Error('尚未连接');
+  if (!creds?.access_token) {
+    const err = new Error('尚未连接 ChatGPT');
+    err.errorType = 'not_connected';
+    err.httpStatus = 401;
+    throw err;
+  }
+  if (!hasSharingScope(creds)) {
+    const err = new Error('已登录，但未授予 ChatGPT plan usage（缺少 chatgpt.tokens.use.direct）');
+    err.errorType = 'no_plan_usage';
+    err.httpStatus = 403;
+    throw err;
+  }
   return creds.access_token;
 }
 

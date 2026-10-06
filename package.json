@@ -1,13 +1,50 @@
 {
-  "name": "poc-official-chatgpt-plan",
+  "name": "chatgpt-plan-bridge",
   "version": "0.1.0",
-  "private": true,
+  "description": "Use your ChatGPT Plus/Pro plan in your own local tools, through OpenAI's official sign-in and Responses API. No API key, no unofficial backend.",
   "type": "module",
-  "description": "最小化 PoC：验证官方 Sign in with ChatGPT（ChatGPT plan usage）→ api.openai.com/v1/models → api.openai.com/v1/responses 这条链路是否真实可用",
+  "license": "Apache-2.0",
+  "bin": {
+    "cpb": "bin/cpb.js",
+    "chatgpt-plan-bridge": "bin/cpb.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "scripts/",
+    "docs/",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "start": "node src/server.js"
-  }
+    "start": "node bin/cpb.js serve",
+    "login": "node bin/cpb.js login",
+    "status": "node bin/cpb.js status",
+    "models": "node bin/cpb.js models",
+    "test-models": "node scripts/test-models.mjs"
+  },
+  "keywords": [
+    "chatgpt",
+    "codex",
+    "openai",
+    "oauth",
+    "responses-api",
+    "mcp",
+    "local-first",
+    "llm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhiqiang73-cpu/chatgpt-plan-bridge.git"
+  },
+  "dependencies": {},
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ]
 }
