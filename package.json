@@ -25,6 +25,8 @@
     "login": "node bin/cpb.js login",
     "status": "node bin/cpb.js status",
     "models": "node bin/cpb.js models",
+    "test": "node scripts/selftest.mjs",
+    "selftest": "node scripts/selftest.mjs",
     "test-models": "node scripts/test-models.mjs"
   },
   "keywords": [

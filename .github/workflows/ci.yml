@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  selftest:
+    name: self-test (${{ matrix.os }} / node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['18', '20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # 零依赖：不需要 npm install
+      - name: Syntax check
+        shell: bash
+        run: |
+          for f in src/*.js bin/*.js scripts/*.mjs; do
+            node --check "$f"
+          done
+
+      - name: Self-test
+        run: node scripts/selftest.mjs
+
+      - name: No credentials committed
+        shell: bash
+        run: |
+          if git ls-files | grep -E '^(state|logs)/'; then
+            echo "::error::state/ or logs/ must never be tracked"
+            exit 1
+          fi
+          echo "ok"
